@@ -8,6 +8,7 @@ import java.util.List;
 import org.jsoup.Connection;
 
 import junkie.utils.searchword.data.SearchWord;
+import junkie.utils.searchword.data.related.RelatedWord;
 import junkie.utils.searchword.search.SearchResult;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,15 +44,22 @@ public class NaverConnector extends BaseConnector {
 	}
 
 	@Override
-	protected List<SearchWord> findRelationKeyword(SearchResult connectResult) {
+	protected List<RelatedWord> findRelationKeyword(SearchResult connectResult) {
 		log.debug("connectResult [{}]", connectResult);
-		List<SearchWord> keywordList = new ArrayList<>();
+		List<RelatedWord> keywordList = new ArrayList<>();
 		connectResult.find("#nx_related_keywords > dl > dd.lst_relate > ul > li > a", (e, i) -> {
-			String relationKeyword = e.text();
+			String relationWord = e.text();
 			String urlString = e.attr("abs:href");
-			
-			keywordList.add(new SearchWord(relationKeyword, urlString));
+			RelatedWord relatedSearchWord = new RelatedWord();
+			relatedSearchWord.setRelatedWord(relationWord);
+			relatedSearchWord.setSearchWord(super.getSearchWord().getWord());
+			relatedSearchWord.setUrlString(urlString);
+			keywordList.add(relatedSearchWord);
 		});
 		return keywordList;
+	}
+	@Override
+	protected String getSiteName() {
+		return "Naver";
 	}
 }

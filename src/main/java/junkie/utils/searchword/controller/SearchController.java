@@ -9,54 +9,39 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import junkie.utils.searchword.data.SearchWord;
-import junkie.utils.searchword.data.SearchWordRepository;
-import junkie.utils.searchword.data.related.RelatedSearchWord;
-import junkie.utils.searchword.data.related.RelatedSearchWordRepository;
+import junkie.utils.searchword.data.related.RelatedWord;
 import junkie.utils.searchword.search.SearchException;
-import junkie.utils.searchword.search.connector.NaverConnector;
+import junkie.utils.searchword.service.SearchService;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/api/searchword")
+@RequestMapping("/api")
 @Slf4j
 public class SearchController {
 
 	@Autowired
-	private SearchWordRepository searchRepository;
-	
-	@Autowired
-	private RelatedSearchWordRepository relatedSearchWordRepository;
-
+	private SearchService searchService;
 	@GetMapping
-	public List<SearchWord> getAllSearchWords() {
-		return searchRepository.findAll();
+	public List<SearchWord> getAllSearchWords() throws SearchException {
+		return searchService.getAllSearchWord();
 	}
-	@GetMapping("{word}")
-	public RelatedSearchWord searchWord(@PathVariable String word) throws SearchException {
+
+	@GetMapping("searchword/{word}")
+	public SearchWord searchWord(@PathVariable final String word) throws SearchException {
 		log.info("try search word[{}]", word);
-		
 		SearchWord searchWord = null;
-		RelatedSearchWord relatedSearchWord = null;
-		searchWord = searchRepository.findOne(word);
-		if (searchWord == null) {
-			NaverConnector connector = new NaverConnector(word);
-			try {
-				relatedSearchWord = connector.searchRelationWord();
-			} catch (SearchException e) {
-				log.error("error occured while search by [{}]", word);
-				throw e;
-			}
-			// save word
-			searchWord = searchRepository.save(connector.getSearchWord());
-			// save related word as search word
-			relatedSearchWord.getRelatedWordList().stream().forEach(s -> {searchRepository.save(s);});
-			relatedSearchWord.setWord(searchWord.getWord());
-			// save related word list
-			relatedSearchWord = relatedSearchWordRepository.save(relatedSearchWord);
-		} else {
-			relatedSearchWord = relatedSearchWordRepository.findOne(searchWord.getWord());
+		try {
+			searchWord = searchService.getSearchWord(word);
+		} catch (SearchException e) {
+			log.error(e.getMessage());
+			throw e;
 		}
-		relatedSearchWord.getRelatedWordList().stream().forEach(w -> log.debug(" find related word [{}]", w));
-		return relatedSearchWord;
+		log.info("founded with word [{}], related word is [{}]", searchWord, searchWord.getRelatedWordList().size());
+		return searchWord;
+	}
+	
+	@GetMapping("related/{relatedWord}")
+	public List<RelatedWord> searchByRelatedWord(@PathVariable final String relatedWord) throws SearchException {
+		return searchService.getSearchWordByRelatedWord(relatedWord);
 	}
 }

@@ -8,7 +8,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import junkie.utils.searchword.data.SearchWord;
-import junkie.utils.searchword.data.related.RelatedSearchWord;
+import junkie.utils.searchword.data.related.RelatedWord;
 import junkie.utils.searchword.search.SearchException;
 import junkie.utils.searchword.search.SearchResult;
 import lombok.Getter;
@@ -23,8 +23,9 @@ public abstract class BaseConnector implements ISearchConnector {
 	private SearchWord searchWord;
 	protected BaseConnector(SearchWord searchWord) {
 		this.searchWord = searchWord;
+		this.searchWord.setSearchSite(getSiteName());
 	}
-	public final RelatedSearchWord searchRelationWord() throws SearchException {
+	public final List<RelatedWord> searchRelationWord() throws SearchException {
 		log.info("try connect.");
 		Connection connections = getConnections();
 		log.info("success get connections");
@@ -37,13 +38,13 @@ public abstract class BaseConnector implements ISearchConnector {
 		}
 		SearchResult connectResult = new SearchResult(document);
 		log.debug("connect result [{}]", connectResult);
-		List<SearchWord> relationKeywordList = findRelationKeyword(connectResult);
-		RelatedSearchWord relatedSearchWord = new RelatedSearchWord(this.searchWord.getWord(), relationKeywordList);
-		return relatedSearchWord;
+		List<RelatedWord> relationKeywordList = findRelationKeyword(connectResult);
+		return relationKeywordList;
 	}
 	protected Connection getConnections() {
 		return Jsoup.connect(this.searchWord.getUrlString()).timeout(DEFAULT_TIMEOUT_MILISECONDS).userAgent(DEFAULT_USER_AGENT);
 	}
 	
-	protected abstract List<SearchWord> findRelationKeyword(SearchResult connectResult);
+	protected abstract String getSiteName();
+	protected abstract List<RelatedWord> findRelationKeyword(SearchResult connectResult);
 }
